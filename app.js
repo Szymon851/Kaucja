@@ -1,7 +1,7 @@
 // ============================================================
 // KONFIGURACJA - podmień na adres swojego backendu na Render.com
 // ============================================================
-const API_URL = 'https://twoj-backend.onrender.com';
+const API_URL = 'https://kaucja-backend.onrender.com';
 
 // Stały klient (MVP) - user id: 1
 const CURRENT_USER_ID = 1;
