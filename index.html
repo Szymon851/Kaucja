@@ -21,41 +21,98 @@
 
     <!-- ============ WIDOK HOME ============ -->
     <section id="view-home" class="view">
-      <h1>Witaj w aplikacji Kaucja</h1>
-      <p class="subtitle">Wybierz panel, z którego chcesz korzystać</p>
+      <div class="hero">
+        <div>
+          <h1>Witaj w aplikacji Kaucja</h1>
+          <p class="subtitle">Obsługa odbiorów, kurierów i rozliczeń butelek kaucyjnych.</p>
+        </div>
+        <div class="api-status" id="apiStatus">Sprawdzanie API...</div>
+      </div>
+
+      <div class="stats-grid" id="homeStats">
+        <div class="stat-card"><span>Oczekujące</span><strong>0</strong></div>
+        <div class="stat-card"><span>Odebrane</span><strong>0</strong></div>
+        <div class="stat-card"><span>Zakończone</span><strong>0</strong></div>
+        <div class="stat-card"><span>Wypłacono</span><strong>0.00 zł</strong></div>
+      </div>
+
       <div class="home-grid">
         <button class="home-card client" data-view="client">
-          <span class="home-icon">👤</span>
-          <span class="home-title">Klient</span>
-          <span class="home-desc">Zamów kuriera i sprawdź saldo</span>
+          <span class="home-icon">Klient</span>
+          <span class="home-title">Panel Klienta</span>
+          <span class="home-desc">Zamów odbiór, sprawdź saldo i historię</span>
         </button>
         <button class="home-card courier" data-view="courier">
-          <span class="home-icon">🚚</span>
-          <span class="home-title">Kurier</span>
-          <span class="home-desc">Odbierz oczekujące zamówienia</span>
+          <span class="home-icon">Kurier</span>
+          <span class="home-title">Panel Kuriera</span>
+          <span class="home-desc">Lista odbiorów, kontakt i oznaczanie statusu</span>
         </button>
         <button class="home-card admin" data-view="admin">
-          <span class="home-icon">🏭</span>
-          <span class="home-title">Admin / Magazyn</span>
-          <span class="home-desc">Rozlicz odebrane butelki</span>
+          <span class="home-icon">Admin</span>
+          <span class="home-title">Magazyn</span>
+          <span class="home-desc">Rozliczenia, historia, eksport CSV</span>
         </button>
       </div>
     </section>
 
     <!-- ============ WIDOK KLIENTA ============ -->
     <section id="view-client" class="view hidden">
-      <h1>Panel Klienta</h1>
+      <div class="section-head">
+        <div>
+          <h1>Panel Klienta</h1>
+          <p class="subtitle">Użytkownik testowy: ID 1</p>
+        </div>
+        <button class="btn btn-light" id="refreshClientBtn">Odśwież</button>
+      </div>
 
       <div class="balance-card">
         <span class="balance-label">Twoje saldo</span>
         <span class="balance-value" id="clientBalance">0.00 zł</span>
+        <span class="balance-hint" id="clientSummary">Brak danych</span>
       </div>
 
-      <button class="btn btn-primary btn-block" id="orderCourierBtn">
-        📦 Zamów kuriera
-      </button>
+      <div class="panel">
+        <h2>Zamów kuriera</h2>
+        <form id="pickupForm" class="form-grid">
+          <div class="field field-wide">
+            <label for="pickupAddress">Adres odbioru</label>
+            <input id="pickupAddress" type="text" placeholder="np. ul. Zielona 12, Warszawa" required />
+          </div>
+          <div class="field">
+            <label for="pickupPhone">Telefon</label>
+            <input id="pickupPhone" type="tel" placeholder="np. 500 600 700" required />
+          </div>
+          <div class="field">
+            <label for="pickupDate">Preferowany termin</label>
+            <input id="pickupDate" type="datetime-local" />
+          </div>
+          <div class="field">
+            <label for="estimatedPet">Szac. PET</label>
+            <input id="estimatedPet" type="number" min="0" value="0" />
+          </div>
+          <div class="field">
+            <label for="estimatedGlass">Szac. szkło</label>
+            <input id="estimatedGlass" type="number" min="0" value="0" />
+          </div>
+          <div class="field field-wide">
+            <label for="pickupNote">Notatka dla kuriera</label>
+            <textarea id="pickupNote" rows="3" placeholder="np. proszę dzwonić domofonem 12"></textarea>
+          </div>
+          <button class="btn btn-primary btn-block field-wide" type="submit">Zamów kuriera</button>
+        </form>
+      </div>
 
-      <h2>Twoje zamówienia</h2>
+      <div class="toolbar">
+        <h2>Twoje zamówienia</h2>
+        <select id="clientStatusFilter" class="select">
+          <option value="all">Wszystkie statusy</option>
+          <option value="Pending">Oczekujące</option>
+          <option value="Collected">Odebrane</option>
+          <option value="Completed">Zakończone</option>
+          <option value="Cancelled">Anulowane</option>
+          <option value="Failed">Nieudane</option>
+        </select>
+      </div>
       <div id="clientOrders" class="orders-list">
         <p class="empty">Brak zamówień.</p>
       </div>
@@ -63,8 +120,19 @@
 
     <!-- ============ WIDOK KURIERA ============ -->
     <section id="view-courier" class="view hidden">
-      <h1>Panel Kuriera</h1>
-      <p class="subtitle">Zamówienia oczekujące na odbiór</p>
+      <div class="section-head">
+        <div>
+          <h1>Panel Kuriera</h1>
+          <p class="subtitle">Zamówienia oczekujące na odbiór</p>
+        </div>
+        <button class="btn btn-light" id="refreshCourierBtn">Odśwież</button>
+      </div>
+
+      <div class="toolbar">
+        <input id="courierSearch" class="search" type="search" placeholder="Szukaj po adresie, telefonie lub ID..." />
+        <span class="pill" id="courierCount">0 zleceń</span>
+      </div>
+
       <div id="courierOrders" class="orders-list">
         <p class="empty">Brak oczekujących zamówień.</p>
       </div>
@@ -72,10 +140,35 @@
 
     <!-- ============ WIDOK ADMINA ============ -->
     <section id="view-admin" class="view hidden">
-      <h1>Panel Admina / Magazynu</h1>
-      <p class="subtitle">Zamówienia odebrane - do rozliczenia</p>
+      <div class="section-head">
+        <div>
+          <h1>Panel Admina / Magazynu</h1>
+          <p class="subtitle">Rozliczenia, historia i eksport danych</p>
+        </div>
+        <button class="btn btn-light" id="refreshAdminBtn">Odśwież</button>
+      </div>
+
+      <div class="stats-grid" id="adminStats">
+        <div class="stat-card"><span>Do rozliczenia</span><strong>0</strong></div>
+        <div class="stat-card"><span>Zakończone</span><strong>0</strong></div>
+        <div class="stat-card"><span>PET</span><strong>0</strong></div>
+        <div class="stat-card"><span>Szkło</span><strong>0</strong></div>
+      </div>
+
+      <div class="toolbar">
+        <h2>Zamówienia odebrane</h2>
+        <button class="btn btn-success" id="exportCsvBtn">Eksport CSV</button>
+      </div>
       <div id="adminOrders" class="orders-list">
         <p class="empty">Brak zamówień do rozliczenia.</p>
+      </div>
+
+      <div class="toolbar history-toolbar">
+        <h2>Historia zakończonych</h2>
+        <input id="adminHistorySearch" class="search" type="search" placeholder="Szukaj w historii..." />
+      </div>
+      <div id="completedOrders" class="orders-list compact-list">
+        <p class="empty">Brak zakończonych zamówień.</p>
       </div>
     </section>
 
