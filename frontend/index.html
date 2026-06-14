@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kaucja - Odbiór butelek</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo" id="logoHome">♻️ Kaucja</div>
+    <nav class="nav">
+      <button class="nav-btn" data-view="home">Home</button>
+      <button class="nav-btn" data-view="client">Klient</button>
+      <button class="nav-btn" data-view="courier">Kurier</button>
+      <button class="nav-btn" data-view="admin">Admin</button>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <!-- ============ WIDOK HOME ============ -->
+    <section id="view-home" class="view">
+      <h1>Witaj w aplikacji Kaucja</h1>
+      <p class="subtitle">Wybierz panel, z którego chcesz korzystać</p>
+      <div class="home-grid">
+        <button class="home-card client" data-view="client">
+          <span class="home-icon">👤</span>
+          <span class="home-title">Klient</span>
+          <span class="home-desc">Zamów kuriera i sprawdź saldo</span>
+        </button>
+        <button class="home-card courier" data-view="courier">
+          <span class="home-icon">🚚</span>
+          <span class="home-title">Kurier</span>
+          <span class="home-desc">Odbierz oczekujące zamówienia</span>
+        </button>
+        <button class="home-card admin" data-view="admin">
+          <span class="home-icon">🏭</span>
+          <span class="home-title">Admin / Magazyn</span>
+          <span class="home-desc">Rozlicz odebrane butelki</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ WIDOK KLIENTA ============ -->
+    <section id="view-client" class="view hidden">
+      <h1>Panel Klienta</h1>
+
+      <div class="balance-card">
+        <span class="balance-label">Twoje saldo</span>
+        <span class="balance-value" id="clientBalance">0.00 zł</span>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="orderCourierBtn">
+        📦 Zamów kuriera
+      </button>
+
+      <h2>Twoje zamówienia</h2>
+      <div id="clientOrders" class="orders-list">
+        <p class="empty">Brak zamówień.</p>
+      </div>
+    </section>
+
+    <!-- ============ WIDOK KURIERA ============ -->
+    <section id="view-courier" class="view hidden">
+      <h1>Panel Kuriera</h1>
+      <p class="subtitle">Zamówienia oczekujące na odbiór</p>
+      <div id="courierOrders" class="orders-list">
+        <p class="empty">Brak oczekujących zamówień.</p>
+      </div>
+    </section>
+
+    <!-- ============ WIDOK ADMINA ============ -->
+    <section id="view-admin" class="view hidden">
+      <h1>Panel Admina / Magazynu</h1>
+      <p class="subtitle">Zamówienia odebrane - do rozliczenia</p>
+      <div id="adminOrders" class="orders-list">
+        <p class="empty">Brak zamówień do rozliczenia.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
