@@ -52,25 +52,75 @@ function showToast(message) {
   toast._timer = setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
-async function apiFetch(path, options = {}) {
-  const res = await fetch(API_URL + path, {
-    ...options,
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.headers || {})
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Pojedyncza próba żądania z limitem czasu (AbortController)
+async function singleFetch(path, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(API_URL + path, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {})
+      }
+    });
+
+    if (!res.ok) {
+      let msg = 'Błąd serwera (' + res.status + ')';
+      try {
+        const data = await res.json();
+        if (data && data.error) msg = data.error;
+      } catch (e) { /* odpowiedź nie jest JSON-em */ }
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
     }
-  });
 
-  if (!res.ok) {
-    let msg = 'Błąd serwera (' + res.status + ')';
-    try {
-      const data = await res.json();
-      if (data && data.error) msg = data.error;
-    } catch (e) { /* ignore */ }
-    throw new Error(msg);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
   }
+}
 
-  return res.json();
+// Żądania GET są bezpieczne do ponawiania - obsługa zimnego startu Render.
+// Żądań zmieniających dane (POST/PUT) NIE ponawiamy, by uniknąć duplikatów.
+async function apiFetch(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const maxAttempts = method === 'GET' ? 4 : 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await singleFetch(path, options, 65000);
+      setConnecting(false);
+      return result;
+    } catch (e) {
+      const isServerWaking = e.name === 'AbortError' || !e.status || e.status >= 500;
+      if (attempt < maxAttempts && isServerWaking) {
+        setConnecting(true);
+        await sleep(attempt * 2500);
+        continue;
+      }
+      setConnecting(false);
+      throw e;
+    }
+  }
+}
+
+let connecting = false;
+function setConnecting(state) {
+  if (connecting === state) return;
+  connecting = state;
+  const el = document.getElementById('apiStatus');
+  if (!el) return;
+  if (state) {
+    el.textContent = 'Łączę z serwerem (do ~1 min przy pierwszym uruchomieniu)...';
+    el.className = 'api-status';
+  }
 }
 
 function mapsUrl(address) {
@@ -115,7 +165,10 @@ function showView(view) {
 
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => loadView(currentView), REFRESH_INTERVAL);
+  refreshTimer = setInterval(() => {
+    if (document.hidden) return;
+    loadView(currentView);
+  }, REFRESH_INTERVAL);
 }
 
 function loadView(view) {

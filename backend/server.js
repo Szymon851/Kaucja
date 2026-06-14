@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -14,7 +16,7 @@ app.use((req, res, next) => {
   next();
 });
 
-let users = [
+const DEFAULT_USERS = [
   {
     id: 1,
     name: 'Jan Kowalski',
@@ -25,11 +27,46 @@ let users = [
 ];
 
 // status: Pending | Collected | Completed | Cancelled | Failed
+let users = DEFAULT_USERS;
 let pickups = [];
 let nextPickupId = 1;
 
 const PRICE_PET = 0.5;
 const PRICE_GLASS = 1.0;
+
+// ============================================================
+// TRWAŁOŚĆ DANYCH (plik JSON)
+// Uwaga: na darmowym planie Render dysk jest ulotny - dane przetrwają
+// restart procesu, ale zostaną wyczyszczone po pełnym uśpieniu instancji.
+// ============================================================
+const DATA_FILE = path.join(__dirname, 'data.json');
+
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      users = Array.isArray(raw.users) && raw.users.length ? raw.users : DEFAULT_USERS;
+      pickups = Array.isArray(raw.pickups) ? raw.pickups : [];
+      nextPickupId = Number(raw.nextPickupId) || (pickups.reduce((max, p) => Math.max(max, p.id), 0) + 1);
+    }
+  } catch (e) {
+    console.error('Nie udało się wczytać data.json:', e.message);
+  }
+}
+
+let saveTimer = null;
+function saveData() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify({ users, pickups, nextPickupId }, null, 2));
+    } catch (e) {
+      console.error('Nie udało się zapisać data.json:', e.message);
+    }
+  }, 150);
+}
+
+loadData();
 
 function now() {
   return new Date().toISOString();
@@ -137,6 +174,7 @@ app.post('/api/pickups', (req, res) => {
   user.phone = pickup.phone;
   user.defaultAddress = pickup.address;
   pickups.push(pickup);
+  saveData();
   res.status(201).json(pickup);
 });
 
@@ -158,6 +196,7 @@ app.put('/api/pickups/:id/cancel', (req, res) => {
   pickup.status = 'Cancelled';
   pickup.cancelledAt = now();
   pickup.updatedAt = now();
+  saveData();
   res.json(pickup);
 });
 
@@ -172,6 +211,7 @@ app.put('/api/pickups/:id/collect', (req, res) => {
   pickup.collectedAt = now();
   pickup.updatedAt = now();
   pickup.courierNote = req.body && req.body.courierNote ? String(req.body.courierNote).trim() : '';
+  saveData();
   res.json(pickup);
 });
 
@@ -186,6 +226,7 @@ app.put('/api/pickups/:id/fail', (req, res) => {
   pickup.failedAt = now();
   pickup.updatedAt = now();
   pickup.courierNote = req.body && req.body.courierNote ? String(req.body.courierNote).trim() : 'Nieudany odbiór';
+  saveData();
   res.json(pickup);
 });
 
@@ -214,8 +255,24 @@ app.put('/api/pickups/:id/settle', (req, res) => {
   const user = users.find(u => u.id === pickup.userId);
   if (user) user.balance = roundMoney(user.balance + amount);
 
+  saveData();
   res.json({ pickup, user, stats: publicStats() });
 });
+
+// 404 - zawsze JSON, żeby frontend nie dostał strony HTML
+app.use((req, res) => {
+  res.status(404).json({ error: 'Nie znaleziono zasobu' });
+});
+
+// Globalna obsługa błędów - zawsze JSON, serwer nie kładzie się przez wyjątek
+app.use((err, req, res, next) => {
+  console.error('Błąd serwera:', err && err.message);
+  res.status(500).json({ error: 'Wewnętrzny błąd serwera' });
+});
+
+// Zabezpieczenie przed wywaleniem procesu (Render nie restartuje przy każdym wyjątku)
+process.on('unhandledRejection', (reason) => console.error('unhandledRejection:', reason));
+process.on('uncaughtException', (err) => console.error('uncaughtException:', err && err.message));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
